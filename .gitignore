@@ -1,0 +1,35 @@
+# 環境変数・秘密情報
+.env
+.env.*
+!.env.example
+
+# 鍵・証明書
+*.pem
+*.key
+id_rsa
+id_ed25519
+
+# ローカル設定
+.claude/settings.local.json
+.cursor/*.local.json
+
+# 依存・ビルド成果物
+node_modules/
+dist/
+build/
+out/
+.cache/
+__pycache__/
+*.pyc
+*.log
+
+# OS / IDE
+.DS_Store
+Thumbs.db
+.idea/
+*.swp
+
+# テスト・カバレッジ
+coverage/
+.nyc_output/
+.pytest_cache/
