@@ -33,3 +33,6 @@ Thumbs.db
 coverage/
 .nyc_output/
 .pytest_cache/
+
+# 実データを含む作業用ディレクトリ（社員名・トークン・アプリ内部URLを含むため追跡しない）
+tmp/
