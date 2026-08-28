@@ -1,0 +1,34 @@
+{
+  "manifest_version": 3,
+  "name": "shift2gcal",
+  "version": "0.1.0",
+  "description": "業務管理アプリのシフトAPIレスポンスを取り込み、Googleカレンダーへ勤務予定を同期します。",
+  "minimum_chrome_version": "116",
+  "permissions": [
+    "storage",
+    "identity",
+    "scripting"
+  ],
+  "host_permissions": [
+    "https://www.googleapis.com/*"
+  ],
+  "optional_host_permissions": [
+    "*://*/*"
+  ],
+  "background": {
+    "service_worker": "src/background/service-worker.js",
+    "type": "module"
+  },
+  "action": {
+    "default_title": "shift2gcal",
+    "default_popup": "src/popup/popup.html"
+  },
+  "options_page": "src/options/options.html",
+  "oauth2": {
+    "client_id": "345215807673-dg9mk6e0024p9vsvb5otnf7ck472s0vj.apps.googleusercontent.com",
+    "scopes": [
+      "https://www.googleapis.com/auth/calendar",
+      "https://www.googleapis.com/auth/calendar.events"
+    ]
+  }
+}
