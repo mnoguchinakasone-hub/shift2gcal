@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <title>shift2gcal</title>
+    <link rel="stylesheet" href="popup.css" />
+  </head>
+  <body>
+    <header class="header">
+      <h1>shift2gcal</h1>
+      <a class="link" id="open-options" href="#">設定</a>
+    </header>
+
+    <section class="panel" id="setup-notice" hidden>
+      <p class="notice">
+        対象アプリのオリジンが未設定です。設定画面でオリジンを登録し、権限を許可してください。
+      </p>
+    </section>
+
+    <section class="panel">
+      <label class="field">
+        <span class="field-label">対象月</span>
+        <select id="month-select"></select>
+      </label>
+      <p class="meta" id="capture-meta">取り込み状況を確認しています…</p>
+      <div class="actions">
+        <button id="preview-btn" type="button" class="primary">プレビュー</button>
+        <button id="sync-btn" type="button" disabled>同期を実行</button>
+      </div>
+    </section>
+
+    <section class="panel" id="message-panel" hidden>
+      <p id="message" class="message"></p>
+    </section>
+
+    <section class="panel" id="summary-panel" hidden>
+      <ul class="summary">
+        <li><span class="badge create">新規</span><b id="count-create">0</b></li>
+        <li><span class="badge update">更新</span><b id="count-update">0</b></li>
+        <li><span class="badge remove">削除</span><b id="count-remove">0</b></li>
+        <li><span class="badge keep">変更なし</span><b id="count-unchanged">0</b></li>
+      </ul>
+      <label class="checkbox">
+        <input type="checkbox" id="show-unchanged" />
+        <span>変更なしの日も表示する</span>
+      </label>
+      <div class="table-wrap">
+        <table class="diff">
+          <thead>
+            <tr>
+              <th>日付</th>
+              <th>区分</th>
+              <th>内容</th>
+              <th>操作</th>
+            </tr>
+          </thead>
+          <tbody id="diff-body"></tbody>
+        </table>
+      </div>
+    </section>
+    <script type="module" src="popup.js"></script>
+  </body>
+</html>

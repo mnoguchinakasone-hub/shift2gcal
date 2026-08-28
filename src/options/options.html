@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <title>shift2gcal 設定</title>
+    <link rel="stylesheet" href="options.css" />
+  </head>
+  <body>
+    <h1>shift2gcal 設定</h1>
+
+    <form id="settings-form">
+      <fieldset>
+        <legend>1. 業務管理アプリ</legend>
+        <label class="field">
+          <span class="label">対象オリジン</span>
+          <input
+            type="text"
+            id="appOriginPattern"
+            placeholder="https://example.co.jp/*"
+            spellcheck="false"
+          />
+        </label>
+        <p class="hint">
+          シフト画面のURLに合わせて入力します。末尾は <code>/*</code> にしてください。
+          保存すると、このオリジンでAPIレスポンスの取り込みが有効になります。
+        </p>
+        <div class="row">
+          <button type="button" id="grant-btn">このオリジンへのアクセスを許可</button>
+          <span class="status" id="permission-status"></span>
+        </div>
+
+        <label class="field">
+          <span class="label">APIのURLフィルタ</span>
+          <input type="text" id="apiUrlFilter" placeholder="（任意）例: preview" spellcheck="false" />
+        </label>
+        <p class="hint">
+          指定した文字列を含むURLのレスポンスだけを取り込みます。空欄ならレスポンスの形状だけで判定します。
+        </p>
+
+        <label class="field">
+          <span class="label">対象ユーザー</span>
+          <select id="targetUserId">
+            <option value="">（自動判定）</option>
+          </select>
+        </label>
+        <p class="hint">
+          シフト取得APIのレスポンスには画面上の全ユーザー分が含まれます。カレンダーへ登録するのは、
+          ここで選んだ1人分だけです。シフト画面を開くと候補が自動で集まり、
+          ログイン中のユーザーを判定できた場合は自動で選択されます。
+        </p>
+        <p class="hint" id="detect-status"></p>
+
+        <label class="field">
+          <span class="label">ログインユーザー<br />のセレクタ</span>
+          <input
+            type="text"
+            id="currentUserSelector"
+            placeholder="（任意）例: .global-header a.user-name"
+            spellcheck="false"
+          />
+        </label>
+        <p class="hint">
+          自動判定できない場合のみ指定します。ヘッダに表示されているログインユーザーの要素を指すCSSセレクタで、
+          その要素の <code>data-user_id</code>、<code>href</code> 内の <code>user_id</code>、
+          テキスト中の数値の順に読み取ります。
+        </p>
+      </fieldset>
+
+      <fieldset>
+        <legend>2. 通常勤務の既定値</legend>
+        <p class="hint">
+          APIの差分データに含まれない日は「通常勤務」とみなし、この時刻で登録します。
+        </p>
+        <div class="row">
+          <label class="field inline">
+            <span class="label">始業</span>
+            <input type="time" id="defaultWorkStart" required />
+          </label>
+          <label class="field inline">
+            <span class="label">終業</span>
+            <input type="time" id="defaultWorkEnd" required />
+          </label>
+        </div>
+        <label class="field">
+          <span class="label">件名</span>
+          <input type="text" id="defaultWorkTitle" />
+        </label>
+      </fieldset>
+
+      <fieldset>
+        <legend>3. Googleカレンダー</legend>
+        <label class="field">
+          <span class="label">カレンダー</span>
+          <select id="calendarId">
+            <option value="primary">primary（メインカレンダー）</option>
+          </select>
+        </label>
+        <div class="row">
+          <button type="button" id="load-calendars-btn">Googleに接続してカレンダー一覧を取得</button>
+          <span class="status" id="calendar-status"></span>
+        </div>
+
+        <label class="field">
+          <span class="label">タイムゾーン</span>
+          <input type="text" id="timeZone" spellcheck="false" />
+        </label>
+
+        <label class="checkbox">
+          <input type="checkbox" id="createHolidayEvents" />
+          <span>公休・定休を終日イベントとして登録する</span>
+        </label>
+        <p class="hint">
+          オフにすると、公休・定休の日はカレンダーに登録しません（既存の同期イベントがあれば削除されます）。
+        </p>
+      </fieldset>
+
+      <div class="actions">
+        <button type="submit" class="primary">保存</button>
+        <span class="status" id="save-status"></span>
+      </div>
+    </form>
+
+    <fieldset class="danger">
+      <legend>メンテナンス</legend>
+      <div class="row">
+        <button type="button" id="clear-captures-btn">取り込み済みシフトデータを消去</button>
+        <button type="button" id="revoke-btn">Googleとの連携を解除</button>
+        <span class="status" id="maintenance-status"></span>
+      </div>
+      <p class="hint">
+        どちらもカレンダー上の予定は削除しません。取り込みデータを消すと、次にシフト画面を開いたときに再取得されます。
+      </p>
+    </fieldset>
+
+    <script type="module" src="options.js"></script>
+  </body>
+</html>
