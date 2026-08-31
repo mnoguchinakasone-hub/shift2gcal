@@ -108,8 +108,9 @@ Google Calendar API エラー (403): Request had insufficient authentication sco
 スコープを変更した場合、既に発行済みのトークンには古いスコープが残る。
 オプション画面の「Googleとの連携を解除」を実行してから、再度接続し直すこと。
 
-未署名の拡張機能はIDが環境ごとに変わるため、IDを固定するには `manifest.json` に `key`
-（公開鍵）を追加する。手順は Chrome for Developers の「拡張機能のIDを保持する」を参照。
+未署名の拡張機能はIDが環境ごとに変わり、OAuthクライアントと結び付けられない。
+IDの固定手順は「社内配布」の「1. 拡張機能IDを固定する」を参照。
+先にIDを固定してから、そのIDでOAuthクライアントを作成すること。
 
 ### 2. 拡張機能を読み込む
 
@@ -129,6 +130,82 @@ Google Calendar API エラー (403): Request had insufficient authentication sco
   ログインユーザーの要素を指すCSSセレクタを指定する
 - **通常勤務の既定値**: 差分データに無い日に使う始業・終業時刻と件名
 - **カレンダー**: 「Googleに接続してカレンダー一覧を取得」で選択する
+
+## 社内配布
+
+Chrome Enterprise Core に登録した端末へ、自前ホスティングの `.crx` を強制インストールする。
+
+### 前提条件
+
+ウェブストア外の拡張機能を強制インストールするには、対象端末が次のいずれかを満たす必要がある。
+
+- Microsoft Active Directory ドメインに参加している
+- Microsoft Entra ID（旧 Azure AD）に参加している
+- **Chrome Enterprise Core に登録されている**
+
+3つ目は Admin console で発行した登録トークンを配布すれば満たせるため、
+ドメイン参加していない端末でも対応できる。Chrome Enterprise Core の利用に追加料金はかからない。
+
+Windows向けヘルプには「Active Directory ドメイン参加が必要」とだけ書かれた記述も残っており、
+ドキュメント間で表現に差がある。**全社展開の前に実機1台で検証すること。**
+
+### 1. 拡張機能IDを固定する
+
+`.pem`（秘密鍵）から導出されるIDを固定し、開発時の unpacked 読み込みと配布物で
+同じIDになるようにする。OAuthクライアントもこのIDで作成する。
+
+```bash
+# 1. chrome://extensions →「拡張機能をパッケージ化」で .crx と .pem を生成する
+# 2. .pem から公開鍵を取り出す
+openssl rsa -in shift2gcal.pem -pubout -outform DER | openssl base64 -A
+```
+
+出力された文字列を `manifest.json` の `key` に設定する。
+
+`.pem` が漏れると第三者が同一IDの拡張機能を作成できるため、リポジトリには含めない
+（`.gitignore` で除外済み）。紛失すると同じIDで更新を配布できなくなるので、
+組織のパスワード管理などに保管する。
+
+### 2. ホスティング先を決める
+
+`.crx` と更新マニフェスト（`updates.xml`）を置く。URLのスキームは `http` / `https` / `file` が使える。
+
+| 候補 | 可否 | 注意 |
+| --- | --- | --- |
+| GitHub Releases / Pages | ○ | **公開リポジトリのみ**。privateは認証が必要でChromeが取得できない |
+| 社内ファイルサーバ（`file://`） | ○ | 全端末から同じパスで参照できること |
+| 社内Webサーバ | ○ | HTTPS推奨 |
+| Google Drive | ✗ | 直リンク配信とヘッダ制御ができない |
+
+`.crx` を配信するときは Content-Type を `application/x-chrome-extension` または
+`application/octet-stream` にし、`X-Content-Type-Options: nosniff` を付けないこと。
+
+### 3. パッケージと更新マニフェストを作る
+
+`manifest.json` に更新確認先を追加する（初回のみ）。
+
+```json
+"update_url": "https://example.com/ext/updates.xml"
+```
+
+リリースのたびに次を実行する。
+
+```bash
+# manifest.json の version を上げてから .crx を再パッケージ（1で作った .pem を指定する）
+# updates.xml を生成する（version は manifest.json から読むのでズレない）
+SHIFT2GCAL_EXTENSION_ID=<拡張機能ID> npm run updates-xml -- https://example.com/ext/shift2gcal-0.1.0.crx
+```
+
+生成した `.crx` と `updates.xml` をホスティング先へ配置する。
+
+### 4. Admin console で強制インストールする
+
+1. Admin console →「Chrome ブラウザ」→「アプリと拡張機能」→「ユーザーとブラウザ」
+2. 右下の「＋」→「Chrome アプリまたは拡張機能をIDで追加」
+3. 拡張機能IDを入力し、「カスタムURLから」を選んで `updates.xml` のURLを指定する
+4. インストールポリシーを「強制インストール」または「強制インストール＋固定」にする
+
+以降、Chromeが数時間おきに `updates.xml` を確認し、`version` が上がっていれば自動更新する。
 
 ## ディレクトリ構成
 
@@ -154,6 +231,8 @@ src/
   popup/               対象月の選択、差分プレビュー、同期実行
   options/             設定画面
 test/                  純粋ロジックのテスト（node:test）
+scripts/
+  make-update-manifest.mjs  自前ホスティング用 updates.xml の生成
 ```
 
 `shift.js` / `diff.js` / `users.js` は `chrome.*` とDOMに依存しないため、Node.js だけでテストできる。
@@ -164,9 +243,12 @@ content script はDOMから値を読むだけにとどめ、どれを採用す�
 ```bash
 # テスト
 npm test
+
+# 配布用の updates.xml を生成（社内配布の手順3を参照）
+SHIFT2GCAL_EXTENSION_ID=<拡張機能ID> npm run updates-xml -- <crxのURL>
 ```
 
-依存パッケージは無く、ビルド手順も無い。`npm install` は不要。
+依存パッケージは無く、拡張機能自体にビルド手順も無い。`npm install` は不要。
 
 ## セキュリティ上の扱い
 
@@ -194,16 +276,41 @@ DOMから自分の `user_id` を自動抽出し、一致する要素だけをカ
 シフト表（`tr.user_tr`）に氏名と `user_id` の対応がある。両者を氏名で突き合わせて特定する。
 初回設定でのユーザーID入力は不要。
 
+### 4. OAuth同意画面の公開範囲
+
+**内部（社内・組織）** に設定済み。Google Workspace 組織のユーザーだけが認可でき、
+Googleの審査（機密スコープの検証）も不要。
+
+### 5. 想定規模
+
+社内配布で、多くても数十名。Google Calendar API のクォータには十分収まる。
+
+### 6. 配布方法
+
+**Chrome Enterprise Core（無料）＋ 自前ホスティングの強制インストール**を採用する。
+利用者側の操作は不要で、自動更新も効く。ウェブストアの登録料もかからない。
+
+`.crx` を配って各自がインストールする方式は採用できない。Chrome は Windows / macOS で
+ウェブストア以外からの拡張機能インストールをブロックしており、`chrome://extensions` へ
+ドラッグしても追加できないため。ウェブストア外の配布は企業ポリシー経由に限られる。
+
+手順は「社内配布」を参照。
+
+
 ## ヒアリングが必要な項目（不明事項リスト）
 
-### 1. 運用
+### 1. 配布の実施
 
-- [ ] 配布方法（Chrome ウェブストア / 社内配布 / 各自で読み込み）
-- [ ] OAuth同意画面の公開範囲（内部 / 外部）
-- [ ] 対象ユーザー数
+方式は決定済み（「6. 配布方法」）。展開前に確認・決定が必要なもの。
+
+- [ ] ウェブストア外の強制インストールが対象端末で実際に動くか（**要検証**）
+  - AD / Entra ID 参加なしの端末では Chrome Enterprise Core への登録が必要
+  - ドキュメント間で要件の記述に差があるため、実機1台で先に確認する
+- [ ] `.crx` と `updates.xml` のホスティング先（**要決定**）
+- [ ] `.pem`（署名用の秘密鍵）の保管場所と管理者
 
 ---
 
 **作成日**: 2026-08-27
-**最終更新**: 2026-08-28
+**最終更新**: 2026-08-29
 **ステータス**: ドラフト
