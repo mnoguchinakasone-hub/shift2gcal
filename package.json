@@ -5,6 +5,7 @@
   "description": "業務管理アプリのシフトAPIレスポンスをGoogleカレンダーへ同期するChrome拡張機能（Manifest V3）",
   "type": "module",
   "scripts": {
-    "test": "node --test \"test/**/*.test.mjs\""
+    "test": "node --test \"test/**/*.test.mjs\"",
+    "updates-xml": "node scripts/make-update-manifest.mjs"
   }
 }
